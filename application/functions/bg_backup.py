@@ -1,14 +1,39 @@
-# -*- coding: utf-8 -*
 import brica
 import tensorflow as tf
 import numpy as np
 import random
-import time
 import os
 
 STEP_THRE = 10000
 ESP_START = 0.7
 ESP_END = 0.0
+#--Env---------------------------------------------------------------------------
+class Environment(object):
+    def __init__(self, fef_data, action_space):
+        self.fef_data = fef_data
+        #env = gym.make(name)
+        #self.env = env
+        self.n_states = len(self.fef_data) * 3
+        self.n_actions = action_space
+        self.a_low_bound = 0.0
+        self.a_high_bound = 1.0
+
+    def reset(self):
+        self.name = None
+        self.n_states = None #len(self.name)
+        self.n_actions = None #action_space
+        self.a_low_bound = None #0.0
+        self.a_high_bound = None #1.0
+        
+        #self.state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,)) cartpole
+        #self.steps_beyond_done = None
+        #return np.array(self.state)
+        return #self.env.reset()
+
+    def step(self, a):
+        return dict(to_pfc=None, to_fef=None, to_sc=a)
+        #return np.array(self.state), reward, done, {}
+        #return self.env.step(a)
 
 #--Agent---------------------------------------------------------------------------
 class Agent(object):
@@ -42,15 +67,75 @@ class Agent(object):
         buffer_s, buffer_a, buffer_v_target = np.vstack(buffer_s), np.vstack(buffer_a), np.vstack(buffer_v_target)
         self.agent_brain.update_global_params(buffer_s, buffer_a, buffer_v_target)  # actual training step, update global ACNet
 
+    def work(self):
+        buffer_s, buffer_a, buffer_r = [], [], []
+        total_r = 0
+        avg_epoch_r_hist = []
+        #for epoch in range(self.max_epochs):
+            #if epoch == self.max_epochs - 1:
+            #    self.env.reset()
+            #    self.env = gym.wrappers.Monitor(self.env, './A3C_continuous') # 動画保存
+        s = self.env.fef_data#.reset()
+        ep_step = 0
+        #print('epoch:', epoch)
+        while True:
+            #if epoch == self.max_epochs - 1:
+                #   self.env.render()
+            a = self.choose_action(s)
+            print('a:', a)
+            inputs = self.env.step(a)
+            #phase = inputs['from_pfc']
+            
+            s_ = inputs['from_fef']
+            r, done = inputs['from_environment']
+            
+            done = True if ep_step == self.max_ep_steps - 1 else False
+
+            total_r += r
+
+            buffer_s.append(s)
+            buffer_a.append(a)
+            buffer_r.append((r + 8) / 8)
+
+            if ep_step % self.params_update_iter == 0 or done:
+                if done:
+                    v_s_ = 0
+                else:
+                    v_s_ = self.predict_value(s_)
+
+                discounted_r = self._discounted_reward(v_s_, buffer_r)
+
+                self.learn(buffer_s, buffer_a, discounted_r)
+
+                buffer_s, buffer_a, buffer_r = [], [], []
+                self.agent_brain.update_local_params()
+
+            s = s_
+            ep_step += 1
+            print('ep_step:', ep_step)
+            if done:
+                break
+            
+        #if self.number == 0:
+        #avg_ep_r = total_r/(epoch+1)
+        #avg_epoch_r_hist.append(avg_ep_r)
+            #if epoch >= 50:
+                #plt.cla()
+                #plt.plot(avg_epoch_r_hist)
+                #plt.pause(0.001)
+        #plt.show()
+        #plt.savefig('./A3C_continuous/figure.png')
+        #plt.ioff()
+
 #--Network for the Actor Critic----------------------------------------------------------------
 class Brain(object):
     def __init__(self, scope, sess, action_scale=1.0, actor_lr=0.001, critic_lr=0.001):
         self.sess = sess
         #self.env = env
-        self.low_action_bound = 0.0 
-        self.high_action_bound = 1.0 
-        self.n_states = 128 * 3 
-        self.n_actions = 128 
+        self.low_action_bound = 0.0 #env.a_low_bound
+        self.high_action_bound = 1.0 #env.a_high_bound
+        self.n_states = 128 * 3 #env.n_states
+        self.n_actions = 128 #env.n_actions
         self.action_scale = action_scale
         self.actor_lr = actor_lr
         self.critic_lr = critic_lr
@@ -115,23 +200,18 @@ class Brain(object):
 
             #actor net 活性化関数relu6 tanh softplus
             with tf.variable_scope('actor'):
-                actor_hidden1 = tf.layers.dense(inputs=self.s, units=64,
+                actor_hidden = tf.layers.dense(inputs=self.s, units=128,
                                                activation=tf.nn.relu6,
                                                kernel_initializer=k_init,
                                                bias_initializer=b_init,
-                                               name='actor_hidden1')
-                actor_hidden2 = tf.layers.dense(inputs=actor_hidden1, units=32,
-                                               activation=tf.nn.relu6,
-                                               kernel_initializer=k_init,
-                                               bias_initializer=b_init,
-                                               name='actor_hidden2')
-                mu = tf.layers.dense(inputs=actor_hidden1,
+                                               name='actor_hidden')
+                mu = tf.layers.dense(inputs=actor_hidden,
                                      units=self.n_actions,
                                      activation=tf.nn.tanh,
                                      kernel_initializer=k_init,
                                      bias_initializer=b_init,
                                      name='mu')
-                sigma = tf.layers.dense(inputs=actor_hidden1,
+                sigma = tf.layers.dense(inputs=actor_hidden,
                                         units=self.n_actions,
                                         activation=tf.nn.softplus,
                                         kernel_initializer=k_init,
@@ -141,17 +221,12 @@ class Brain(object):
 
             #critic net 活性化関数relu6 
             with tf.variable_scope('critic'):
-                critic_hidden1 = tf.layers.dense(inputs=self.s, units=64,
+                critic_hidden = tf.layers.dense(inputs=self.s, units=128,
                                                 activation=tf.nn.relu6,
                                                 kernel_initializer=k_init,
                                                 bias_initializer=b_init,
-                                                name='critic_hidden1')
-                critic_hidden2 = tf.layers.dense(inputs=critic_hidden1, units=32,
-                                                activation=tf.nn.relu6,
-                                                kernel_initializer=k_init,
-                                                bias_initializer=b_init,
-                                                name='critic_hidden2')
-                critic_net = tf.layers.dense(inputs=critic_hidden2,
+                                                name='critic_hidden')
+                critic_net = tf.layers.dense(inputs=critic_hidden,
                                              units=1,
                                              kernel_initializer=k_init,
                                              bias_initializer=b_init,
@@ -168,30 +243,53 @@ class Brain(object):
         self.sess.run([self.update_la_params_op, self.update_lc_params_op])
 
     def choose_action(self, s):
-        s = np.reshape(s,(1, self.n_states))
+        #random いれる
+        '''if steps > STEP_THRE:
+            esp = ESP_END
+        else:
+            esp = ESP_START + steps * (ESP_END - ESP_START) / STEP_THRE
+        
+        if random.random() < esp:
+            s = np.random.rand(self.n_states)
+        '''
+        s = np.reshape(s,(1, self.n_states)) #[np.newaxis, :]
         return self.sess.run(self.actor_net, {self.s: s})[0]
 
     def predict_value(self, s):
-        s = np.reshape(s, (1, self.n_states))
+        s = np.reshape(s, (1, self.n_states)) # [np.newaxis, :]
         v = self.sess.run(self.critic_net, {self.s: s})[0, 0]
         return v
 
+#--run-------------------------------------------------------------------------------------------------
+def run(fef_data, action_space, reward, done):
+    sess = tf.Session()
+    #plt.ion()
+
+    with tf.device("/cpu:0"):
+        env = Environment(fef_data, action_space)
+        Brain('global', sess, env=env)
+        env = Environment(fef_data, action_space)
+        worker = Agent(1, sess, env)
+
+    sess.run(tf.global_variables_initializer())
+    job = worker.work()
+    
 #--BG--------------------------------------------------------------------------------------------------
 class BG(object):
     def __init__(self):
         self.timing = brica.Timing(5, 1, 0)
+        #plt.ion()
         self.buffer_s, self.buffer_a, self.buffer_r = [], [], []
         self.total_r = []
         self.avg_epoch_r_hist = []
         self.steps = 1
         self.a = []
-        self.now = 0.0
-        self.cnvtime = 0.0
 
-        self.saver = tf.train.Saver()
         self.sess = tf.Session()
         with tf.device("/cpu:0"):
+            #env = Environment(fef_data, action_space)
             Brain('global', self.sess)
+            #env = Environment(fef_data, action_space)
             self.worker = Agent(1, self.sess)
             self.sess.run(tf.global_variables_initializer())
         
@@ -213,8 +311,10 @@ class BG(object):
         action_space = len(fef_data)
 
         print('step:', self.steps)
-        ##print('reward:', reward)
+        print('reward:', reward)
        
+        #run(fef_data, action_space, reward, done)
+        #return dict(to_pfc=None, to_fef=None, to_sc=None)
         
         if self.steps == 1:
             self.fef_data = fef_data
@@ -222,12 +322,9 @@ class BG(object):
             self.n_actions = action_space
             self.a_low_bound = 0.0
             self.a_high_bound = 1.0
-            self.now = time.ctime()
-            self.cnvtime = time.strptime(self.now)
-            
+
         s = fef_data
 
-        '''
         if self.steps == 1:
             if self.steps > STEP_THRE:
                 esp = ESP_END
@@ -238,6 +335,7 @@ class BG(object):
                 self.a = np.random.rand(self.n_actions)
             else:
                 self.a = self.worker.choose_action(s)
+
 
 
         if self.steps % self.worker.params_update_iter == 0 :
@@ -250,21 +348,10 @@ class BG(object):
                 self.a = np.random.rand(self.n_actions)
             else:
                 self.a = self.worker.choose_action(s)
-        '''
 
-        #'''
-        if self.steps > STEP_THRE:
-            esp = ESP_END
-        else:
-            esp = ESP_START + self.steps * (ESP_END - ESP_START) / STEP_THRE
-            
-        if random.random() < esp:
-            self.a = np.random.rand(self.n_actions)
-        else:
-            self.a = self.worker.choose_action(s)        
-        #'''
 
-        #print('a:', self.a)
+
+        print('a:', self.a)
 
         self.total_r.append(reward)
         self.buffer_s.append(s)
@@ -275,25 +362,48 @@ class BG(object):
             if done:
                 v_s_ = 0
             else:
+                #v_s_ = worker.predict_value(s_)
                 v_s_ = self.worker.predict_value(s)
 
             discounted_r = self.worker._discounted_reward(v_s_, self.buffer_r)
-            #print('discounted_r:', discounted_r)
+            print('discounted_r:', discounted_r)
             self.worker.learn(self.buffer_s, self.buffer_a, discounted_r)
             
             self.buffer_s, self.buffer_a, self.buffer_r = [], [], []
             self.worker.agent_brain.update_local_params()
 
-
-        f = open('./log/reward/reward' + time.strftime("%Y_%m_%d_%I_%M", self.cnvtime), 'a')
-        f.write(str(self.steps)+", "+str(reward)+"\n")
-        f.close()
-        self.saver.save(self.sess, './log/param/param' + time.strftime("%Y_%m_%d_%I_%M", self.cnvtime))
-        
+        #s = s_
+        #print('s:', s)
+        if self.steps == 500:
+            f = open('./list/reward', 'w')
+            for i in range(self.steps):
+                f.write(str(i)+", "+str(self.total_r[i])+"\n")
+            f.close()
         self.steps += 1
+        #if done:
+        #    break
         do = self.doaction(self.a)
         return do
+        #phase = inputs['from_pfc']
         
+        #s_ = inputs['from_fef']
+        #r, done = inputs['from_environment']
+        
+        #done = True if ep_step == self.max_ep_steps - 1 else False
+
+        
+        
+        #if self.number == 0:
+        #avg_ep_r = total_r/(epoch+1)
+        #avg_epoch_r_hist.append(avg_ep_r)
+            #if epoch >= 50:
+                #plt.cla()
+                #plt.plot(avg_epoch_r_hist)
+                #plt.pause(0.001)
+        #plt.show()
+        #plt.savefig('./A3C_continuous/figure.png')
+        #plt.ioff()
+
 
 
 

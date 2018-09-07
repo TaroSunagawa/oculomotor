@@ -7,7 +7,7 @@ from .utils import load_image
 class Phase(object):
     INIT = -1  # Initial phase
     START = 0  # Start phase while finding red cross cursor
-    TARGET = 1 # Target finding phsae
+    TARGET = 1 # Target finding phase
 
 
 class CursorFindAccumulator(object):

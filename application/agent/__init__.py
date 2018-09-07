@@ -1,7 +1,6 @@
 import numpy as np
 import brica
 
-
 class Environment:
     def __init__(self):
         self._image = None

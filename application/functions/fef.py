@@ -3,7 +3,6 @@ import os
 import cv2
 import math
 import numpy as np
-
 import brica
 from .utils import load_image
 
@@ -145,5 +144,5 @@ class FEF(object):
         for saliency_accumulator in self.saliency_accumulators:
             output.append(saliency_accumulator.output)
         for cursor_accumulator in self.cursor_accumulators:
-            output.append(cursor_accumulator.output)            
+            output.append(cursor_accumulator.output)       
         return output
