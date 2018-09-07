@@ -3,6 +3,10 @@ import brica
 
 
 class SC(object):
+    """ 
+    SC (superior colliculus) module.
+    SC outputs action for saccade eye movement.
+    """
     def __init__(self):
         self.timing = brica.Timing(6, 1, 0)
 
@@ -13,8 +17,10 @@ class SC(object):
             raise Exception('SC did not recieve from FEF')
         if 'from_bg' not in inputs:
             raise Exception('SC did not recieve from BG')
-        
+
+        # Likelihoods and eye movment params from accumulators in FEF module.
         fef_data = inputs['from_fef']
+        # Likelihood thresolds from BG module.
         bg_data = inputs['from_bg']
 
         action = self._decide_action(fef_data, bg_data)
@@ -25,38 +31,30 @@ class SC(object):
         return dict(to_environment=action)
 
     def _decide_action(self, fef_data, bg_data):
-        max_likelihoood = -1.0
-        decided_ex = 0.0
-        decided_ey = 0.0
+        sum_ex = 0.0
+        sum_ey = 0.0
 
-        # TODO: デバッグで現在最大のlikelihoodを持つactionを反映している
-        """for data in fef_data:
+        assert(len(fef_data) == len(bg_data))
+
+        count = 0
+
+        # Calculate average eye ex, ey with has likelihoods over
+        # the thresholds from BG.
+        for i,data in enumerate(fef_data):
             likelihood = data[0]
             ex = data[1]
             ey = data[2]
-            if likelihood > 0.1 and likelihood > max_likelihoood:
-                decided_ex = ex
-                decided_ey = ey
-                max_likelihoood = likelihood"""
-
-        for i in range(len(fef_data)):
-            likelihood = fef_data[i][0]
-            ex = fef_data[i][1]
-            ey = fef_data[i][2]
-            '''
-            if  likelihood > bg_data[i]:
-                if decided_ex > ex:
-                    decided_ex = ex
-                if decided_ey > ey:
-                    decided_ey = ey
-            '''
-
-            if likelihood > bg_data[i] and likelihood > max_likelihoood:
-                decided_ex = ex
-                decided_ey = ey
-                max_likelihoood = likelihood
+            likelihood_threshold = bg_data[i]
             
-    
-        action = [decided_ex * 0.01, decided_ey * 0.01]
-        print('action:', action)
+            if likelihood > likelihood_threshold:
+                sum_ex += ex
+                sum_ey += ey
+                count += 1
+                
+        # Action values should be within range [-1.0~1.0]
+        if count != 0:
+            action = [sum_ex / count, sum_ey / count]
+        else:
+            action = [0.0, 0.0]
+        
         return np.array(action, dtype=np.float32)
