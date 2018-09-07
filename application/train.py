@@ -88,10 +88,11 @@ def train(content, step_size, logger):
         action = agent(image, angle, reward, done)
         # Foward environment one step
         obs, reward, done, _ = env.step(action)
-        
-        episode_reward += reward
 
+        episode_reward += reward
+        
         if done:
+            print("episode count={}".format(episode_count))
             obs = env.reset()
             print("episode reward={}".format(episode_reward))
 

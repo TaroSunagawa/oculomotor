@@ -160,7 +160,7 @@ class Brain(object):
         return mu, sigma, critic_net
 
     def update_global_params(self, s, a, dr):
-        s = np.reshape(s,(10, self.n_states))
+        s = np.reshape(s,(-1, self.n_states))
         feed_dict = {self.s: s, self.a: a, self.q_target: dr}
         self.sess.run([self.update_ga_params_op, self.update_gc_params_op], feed_dict)
 
@@ -188,7 +188,7 @@ class BG(object):
         self.now = 0.0
         self.cnvtime = 0.0
 
-        self.saver = tf.train.Saver()
+        #self.saver = tf.train.Saver()
         self.sess = tf.Session()
         with tf.device("/cpu:0"):
             Brain('global', self.sess)
@@ -288,7 +288,7 @@ class BG(object):
         f = open('./log/reward/reward' + time.strftime("%Y_%m_%d_%I_%M", self.cnvtime), 'a')
         f.write(str(self.steps)+", "+str(reward)+"\n")
         f.close()
-        self.saver.save(self.sess, './log/param/param' + time.strftime("%Y_%m_%d_%I_%M", self.cnvtime))
+        #self.saver.save(self.sess, './log/param/param' + time.strftime("%Y_%m_%d_%I_%M", self.cnvtime))
         
         self.steps += 1
         do = self.doaction(self.a)
