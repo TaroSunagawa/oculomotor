@@ -49,8 +49,8 @@ class Brain(object):
         #self.env = env
         self.low_action_bound = 0.0 
         self.high_action_bound = 1.0 
-        self.n_states = 128 * 3 
-        self.n_actions = 128 
+        self.n_states = 64+1 #128/2 #* 3 
+        self.n_actions = 64 #128/2 
         self.action_scale = action_scale
         self.actor_lr = actor_lr
         self.critic_lr = critic_lr
@@ -168,11 +168,11 @@ class Brain(object):
         self.sess.run([self.update_la_params_op, self.update_lc_params_op])
 
     def choose_action(self, s):
-        s = np.reshape(s,(1, self.n_states))
+        s = np.reshape(s,(-1, self.n_states))
         return self.sess.run(self.actor_net, {self.s: s})[0]
 
     def predict_value(self, s):
-        s = np.reshape(s, (1, self.n_states))
+        s = np.reshape(s, (-1, self.n_states))
         v = self.sess.run(self.critic_net, {self.s: s})[0, 0]
         return v
 
@@ -200,6 +200,7 @@ class BG(object):
         return dict(to_pfc=None, to_fef=None, to_sc=a)
     
     def __call__(self, inputs):
+        starttime = time.time()
         if 'from_environment' not in inputs:
             raise Exception('BG did not recieve from Environment')
         if 'from_pfc' not in inputs:
@@ -215,17 +216,20 @@ class BG(object):
         print('step:', self.steps)
         ##print('reward:', reward)
        
-        
+        #print(fef_data)
+        #print(len(fef_data))
         if self.steps == 1:
-            self.fef_data = fef_data
-            self.n_states = len(self.fef_data) * 3
+            self.phase = phase
+            self.fef_data = fef_data[:, 0]
+            self.state = np.append(self.fef_data, self.phase)
+            self.n_states = len(self.state) #* 3
             self.n_actions = action_space
             self.a_low_bound = 0.0
             self.a_high_bound = 1.0
             self.now = time.ctime()
             self.cnvtime = time.strptime(self.now)
             
-        s = fef_data
+        s = np.append(fef_data[:, 0], phase)
 
         '''
         if self.steps == 1:
@@ -284,14 +288,16 @@ class BG(object):
             self.buffer_s, self.buffer_a, self.buffer_r = [], [], []
             self.worker.agent_brain.update_local_params()
 
-
+        
         f = open('./log/reward/reward' + time.strftime("%Y_%m_%d_%I_%M", self.cnvtime), 'a')
         f.write(str(self.steps)+", "+str(reward)+"\n")
         f.close()
         #self.saver.save(self.sess, './log/param/param' + time.strftime("%Y_%m_%d_%I_%M", self.cnvtime))
-        
+
         self.steps += 1
         do = self.doaction(self.a)
+        endtime = time.time()
+        print('BG time:', endtime-starttime)
         return do
         
 

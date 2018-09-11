@@ -120,10 +120,10 @@ class LIP(object):
         # Size argument of resize() is (w,h) while image shape is (h,w,c)
         image_resized = cv2.resize(image, resize_shape[1::-1])
         # (64,64,3)
-
+        '''
         saliency = np.zeros_like(image_resized, dtype=np.float32)
         # (64,64,3)
-    
+       
         channel_size = image_resized.shape[2]
     
         for ch in range(channel_size):
@@ -140,4 +140,17 @@ class LIP(object):
     
         # Resize to original size
         saliency = cv2.resize(saliency, image.shape[1::-1])
+        '''
+        image_gray = np.mean(image_resized, axis=2)
+        # (64,64)
+
+        saliency = self._get_saliency_magnitude(image_gray)
+      
+        saliency = cv2.GaussianBlur(saliency, GAUSSIAN_KERNEL_SIZE, sigmaX=8, sigmaY=0)
+        saliency = (saliency ** (1/2))
+        saliency = saliency / np.max(saliency) # Normalize
+    
+        # Resize to original size
+        saliency = cv2.resize(saliency, image.shape[1::-1])
+        
         return saliency

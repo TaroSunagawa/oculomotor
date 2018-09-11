@@ -9,6 +9,8 @@ class Environment:
     def __init__(self):
         self._image = None
         self._angle = (0.0, 0.0)
+        # add phase
+        #self._phase = 'True'
         self._reward = 0.0
         self._done = False
         self._action = None
@@ -32,13 +34,24 @@ class Environment:
 
         # Final action values (horizontal and vertical relative angles) are between
         # -ACTION_RATE ~ ACTION_RATE.
-        
+        '''
+        return dict(to_retina=(self._image, self._angle),
+                    to_bg=(self._reward, self._done))
+        '''
+        '''
+        return dict(to_retina=(self._image, self._angle, self._phase),
+                    to_bg=(self._reward, self._done))
+        '''
         return dict(to_retina=(self._image, self._angle),
                     to_bg=(self._reward, self._done))
 
+    # add phase
     def set(self, image, angle, reward, done):
+    #def set(self, image, angle, phase, reward, done):
         self._image = image
         self._angle = angle
+        # add phase
+        #self._phase = phase
         self._reward = reward
         self._done = done
 
@@ -105,7 +118,10 @@ class Agent(object):
             brica.connect(self.components[origin_name], out_port,
                           self.components[target_name], in_port)
 
+    #def __call__(self, image, angle, phase, reward, done):
     def __call__(self, image, angle, reward, done):
+        # add phase
         self.environment.set(image, angle, reward, done)
+        # self.environment.set(image, angle, phase, reward, done)
         self.scheduler.step()
         return self.environment.action

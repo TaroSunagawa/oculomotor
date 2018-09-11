@@ -96,14 +96,14 @@ class CursorAccumulator(ActionAccumulator):
         region_image = retina_image[self.pixel_y:self.pixel_y+GRID_WIDTH,
                                     self.pixel_x:self.pixel_x+GRID_WIDTH, :]
         # Calculate template matching
+        # make feature 
         match = cv2.matchTemplate(region_image, self.cursor_template,
                                   cv2.TM_CCOEFF_NORMED)
         # Find the maximum match value
         match_rate = np.max(match)
         self.accumulate(match_rate * CURSOR_MATCH_COEFF)
         self.expose()
-        
-
+    
 class FEF(object):
     def __init__(self):
         self.timing = brica.Timing(4, 1, 0)
@@ -149,22 +149,32 @@ class FEF(object):
 
         saliency_map, optical_flow = inputs['from_lip']
         retina_image = inputs['from_vc']
-        
+        output = []
         # TODO: 領野をまたいだ共通phaseをどう定義するか？
         if phase == 0:
             for cursor_accumulator in self.cursor_accumulators:
                 cursor_accumulator.process(retina_image)
+                # add
+                cursor_accumulator.post_process()
+                output.append(cursor_accumulator.output)
+            print('FEF phase:True')
         else:
             for saliency_accumulator in self.saliency_accumulators:
                 saliency_accumulator.process(saliency_map)
-
+                # add
+                saliency_accumulator.post_process()
+                output.append(saliency_accumulator.output)
+            print('FEF phase:False')
+        '''
         for saliency_accumulator in self.saliency_accumulators:
             saliency_accumulator.post_process()
         for cursor_accumulator in self.cursor_accumulators:
             cursor_accumulator.post_process()
         
         output = self._collect_output()
+        '''
         
+        output = np.array(output, dtype=np.float32)
         return dict(to_pfc=None,
                     to_bg=output,
                     to_sc=output,

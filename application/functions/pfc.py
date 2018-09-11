@@ -1,7 +1,8 @@
 import cv2
 import numpy as np
-
+import time
 import brica
+import tensorflow as tf 
 from .utils import load_image
 
 """
@@ -50,6 +51,11 @@ class PFC(object):
         
         self.phase = Phase.INIT
 
+        self.mapbuff = []
+        now = time.ctime()
+        self.cnvtime = time.strptime(now)
+        self.curphase = 'True'
+
         
     def __call__(self, inputs):
         if 'from_vc' not in inputs:
@@ -64,8 +70,36 @@ class PFC(object):
         # Image from Visual cortex module.
         retina_image = inputs['from_vc']
         # Allocentrix map image from hippocampal formatin module.
+        #map_image, phase = inputs['from_hp']
         map_image = inputs['from_hp']
-
+        '''
+        # cv2.calcHist(images, channels, mask, histSize, ranges[, hist[, accumulate]])
+        if len(self.mapbuff) >= 1:
+            last_hist = cv2.calcHist(self.mapbuff[-1],  [0], None, [256], [0, 256])
+            now_hist = cv2.calcHist(map_image,  [0], None, [256], [0, 256])
+            result = cv2.compareHist(last_hist, now_hist, 2)
+            #print(result)
+            if result == 384:
+                cv2.imwrite('./log/sequence/error' + str(len(self.mapbuff)) + '.jpg', map_image)
+            print("\n"+str(self.curphase)+' : '+str(phase))
+            #threshold = np.normal
+            if phase != None:
+                if self.curphase != phase:
+                    cv2.imwrite('./log/sequence/' + str(len(self.mapbuff)-1) + '.jpg', self.mapbuff[-1])
+                    cv2.imwrite('./log/sequence/' + str(len(self.mapbuff)) + '.jpg', map_image)
+                self.curphase = phase
+            
+            f = open('./log/sequence/seq_log' + time.strftime("%Y_%m_%d_%I_%M", self.cnvtime), 'a')
+            f.write(str(len(self.mapbuff))+'-'+str(len(self.mapbuff)-1)+':'+str(result) + "\n")
+            f.close()
+        self.mapbuff.append(np.array(map_image))
+        '''
+        '''
+        if self.mapbuff[-1] - map_image == threshold:
+            fef_message = 1
+        else:
+            fef_message = 0
+        '''
         # This is a very sample implementation of phase detection.
         # You should change here as you like.
         self.cursor_find_accmulator.process(retina_image)

@@ -17,5 +17,10 @@ class VC(object):
 
         # Current implementation just passes through input retina image to FEF and PFC.
         
+        weight_t = 1.0 
+        weight_c = 1.0
+        
+        weights = [weight_t, weight_c]
+
         return dict(to_fef=retina_image,
                     to_pfc=retina_image)

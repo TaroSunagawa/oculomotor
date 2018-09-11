@@ -24,13 +24,19 @@ class Retina(object):
     def __call__(self, inputs):
         if 'from_environment' not in inputs:
             raise Exception('Retina did not recieve from Retina')
-        
+        # add phase
         image, angle = inputs['from_environment']
+        #image, angle, phase = inputs['from_environment']
         retina_image = self._create_retina_image(image)
 
         # Store retina image for debug visualizer
         self.last_retina_image = retina_image
-
+        # add phase
+        '''
+        return dict(to_lip=retina_image,
+                    to_vc=retina_image,
+                    to_hp=(retina_image, angle, phase))
+        '''
         return dict(to_lip=retina_image,
                     to_vc=retina_image,
                     to_hp=(retina_image, angle))

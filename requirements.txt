@@ -6,8 +6,9 @@ opencv-python
 opencv-contrib-python
 pybind11
 BriCA2
-oculoenv==0.1.0
+git+https://github.com/TaroSunagawa/oculoenv.git
 tensorflow
 chainer
 torch
 torchvision
+#oculoenv==0.1.0

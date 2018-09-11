@@ -4,6 +4,7 @@
 """
 
 import argparse
+import time
 
 from agent import Agent
 from functions import BG, FEF, LIP, PFC, Retina, SC, VC, HP, CB
@@ -40,6 +41,7 @@ def get_content(content_type):
 
 
 def train(content, step_size, logger):
+    starttime = time.time()
     retina = Retina()
     lip = LIP()
     vc = VC()
@@ -81,7 +83,7 @@ def train(content, step_size, logger):
 
     # Add initial reward log
     logger.log("episode_reward", episode_reward, episode_count)
-    
+    step_size = 10800*500
     for i in range(step_size):
         image, angle = obs['screen'], obs['angle']
         # Choose action by the agent's decision
@@ -104,15 +106,20 @@ def train(content, step_size, logger):
             
             # Plase add model save code as you like.
             #
-            # if i % 10 == 0:
-            #     bg.save_model("model.pkl")
+            if i % 10 == 0:
+                bg.save_model(str(i)+"model.pkl")
             
     print("training finished")
     logger.close()
+    endtime = time.time()
+    print('whole time:', endtime - starttime)
     
 
 
 def main():
+    now = time.ctime()
+    cnvtime = time.strptime(now)
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--content",
                         help="1: Point To Target"
@@ -124,7 +131,7 @@ def main():
                         type=int,
                         default=1)
     parser.add_argument("--step_size", help="Training step size", type=int, default=1000000)
-    parser.add_argument("--log_file", help="Log file name", type=str, default="experiment0")
+    parser.add_argument("--log_file", help="Log file name", type=str, default="experiment" + time.strftime("%Y_%m_%d_%I_%M", cnvtime))
     
     args = parser.parse_args()
     
