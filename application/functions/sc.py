@@ -11,6 +11,7 @@ class SC(object):
         self.timing = brica.Timing(6, 1, 0)
 
         self.last_fef_data = None
+        self.baseline = None
 
     def __call__(self, inputs):
         if 'from_fef' not in inputs:
@@ -34,7 +35,29 @@ class SC(object):
         sum_ex = 0.0
         sum_ey = 0.0
 
-        assert(len(fef_data) == len(bg_data))
+        def mixture_gauss(params):
+            mu1 = params[[0,1]]
+            mu2 = params[[4,5]]
+            det1 = (params[2]+0.1)*(params[3]+0.1)
+            det2 = (params[6]+0.1)*(params[7]+0.1)
+            inv1 = np.array([[1/(params[2]+0.1), 0], [0, 1/(params[3]+0.1)]])
+            inv2 = np.array([[1/(params[6]+0.1), 0], [0, 1/(params[7]+0.1)]])
+            lam1 = params[8]
+            lam2 = params[9]
+
+            def f(x, y):
+                x_c1 = np.array([x, y]) - mu1
+                exp1 = np.exp(- np.dot(np.dot(x_c1,inv1),x_c1[np.newaxis, :].T) / 2.0) 
+                x_c2 = np.array([x, y]) - mu2
+                exp2 = np.exp(- np.dot(np.dot(x_c2,inv2),x_c2[np.newaxis, :].T) / 2.0) 
+                return lam1*exp1/(2*np.pi*np.sqrt(det1)) + lam2*exp2/(2*np.pi*np.sqrt(det2))
+
+            x = y = np.arange(0,8)
+            X, Y = np.meshgrid(x, y)
+            Z = np.vectorize(f)(X,Y)
+            return Z.reshape(-1)
+        '''
+        #assert(len(fef_data) == len(bg_data))
 
         count = 0
 
@@ -48,6 +71,13 @@ class SC(object):
         #print('max_idx', max_idx)
         action = fef_data[max_idx, 1:]
         #print('action', action)
+        '''
+        self.baseline = mixture_gauss(bg_data)
+        diff = fef_data[0:,0]+self.baseline
+        self.last_sc_data = diff
+        max_idx = np.argmax(diff)
+        action = fef_data[max_idx, 1:]
+        return action
 
         '''
         for i,data in enumerate(fef_data):
@@ -66,4 +96,4 @@ class SC(object):
         else:
             action = [0.0, 0.0]
         '''
-        return np.array(action, dtype=np.float32)
+        #return np.array(action, dtype=np.float32)

@@ -85,7 +85,7 @@ class SaliencyAccumulator(ActionAccumulator):
         if change == None:
             self.coef = SALIENCY_COEFF
         if change:
-            self.coef = 0.5 * self.coef
+            self.coef = self.coef#0.5 * self.coef
             print("change:"+str(change))
         self.accumulate(average_saliency * self.coef)
         self.expose()

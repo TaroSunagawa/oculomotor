@@ -50,7 +50,7 @@ class Brain(object):
         self.low_action_bound = 0.0 
         self.high_action_bound = 1.0 
         self.n_states = 64+1 #128/2 #* 3 
-        self.n_actions = 64 #128/2 
+        self.n_actions = 10 #64 #128/2 
         self.action_scale = action_scale
         self.actor_lr = actor_lr
         self.critic_lr = critic_lr
