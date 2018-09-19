@@ -61,7 +61,7 @@ class Inspector(object):
         self.last_image = obs['screen']
         self.last_angle = obs['angle']
         # add phase
-        self.last_phase = 'True'
+        #self.last_phase = 'True'
         self.last_reward = 0
         self.last_done = False
 
@@ -205,7 +205,7 @@ class Inspector(object):
         self.draw_center_text(label, 128 / 2 + left, top + 128 + 8)
 
     def process(self):
-        '''add start phase check
+        #add start phase check
         action = self.agent(self.last_image, self.last_angle, self.last_reward,
                             self.last_done)
         obs, reward, done, _ = self.env.step(action)
@@ -215,7 +215,7 @@ class Inspector(object):
         obs, reward, done, info = self.env.step(action)
 
         self.episode_reward += reward
-
+        '''
         if done:
             obs = self.env.reset()
             self.episode_reward = 0
@@ -223,10 +223,11 @@ class Inspector(object):
         image = obs['screen']
         angle = obs['angle']
         # add phase info
+        '''
         if 'start_phase' in info:
             phase = info['start_phase']
         else:phase = None
-
+        '''
         self.show_reward()
 
         self.show_original_image(image)
@@ -248,7 +249,7 @@ class Inspector(object):
             self.show_map_image(self.hp.map_image)
 
         # add self.last_phase
-        self.last_phase = phase
+        #self.last_phase = phase
         self.last_image = image
         self.last_angle = angle
         self.last_reward = reward

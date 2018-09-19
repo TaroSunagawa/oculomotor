@@ -82,7 +82,7 @@ class Brain(object):
 
             with tf.name_scope('a_loss'):
                 sigma = sigma + 1e-4
-                normal_dist = tf.contrib.distributions.Normal(mu, sigma)
+                normal_dist = tf.distributions.Normal(mu, sigma)
                 log_prob_action_adv = normal_dist.log_prob(self.a) * td  #log( π(a|s,θ) ) * td
                 entropy = normal_dist.entropy()
                 self.policy_loss = self.entropy_beta * entropy + log_prob_action_adv #おっきく間違わないためのエントロピー項
@@ -115,12 +115,12 @@ class Brain(object):
 
             #actor net 活性化関数relu6 tanh softplus
             with tf.variable_scope('actor'):
-                actor_hidden1 = tf.layers.dense(inputs=self.s, units=64,
+                actor_hidden1 = tf.layers.dense(inputs=self.s, units=32,
                                                activation=tf.nn.relu6,
                                                kernel_initializer=k_init,
                                                bias_initializer=b_init,
                                                name='actor_hidden1')
-                actor_hidden2 = tf.layers.dense(inputs=actor_hidden1, units=32,
+                actor_hidden2 = tf.layers.dense(inputs=actor_hidden1, units=16,
                                                activation=tf.nn.relu6,
                                                kernel_initializer=k_init,
                                                bias_initializer=b_init,
@@ -141,12 +141,12 @@ class Brain(object):
 
             #critic net 活性化関数relu6 
             with tf.variable_scope('critic'):
-                critic_hidden1 = tf.layers.dense(inputs=self.s, units=64,
+                critic_hidden1 = tf.layers.dense(inputs=self.s, units=32,
                                                 activation=tf.nn.relu6,
                                                 kernel_initializer=k_init,
                                                 bias_initializer=b_init,
                                                 name='critic_hidden1')
-                critic_hidden2 = tf.layers.dense(inputs=critic_hidden1, units=32,
+                critic_hidden2 = tf.layers.dense(inputs=critic_hidden1, units=16,
                                                 activation=tf.nn.relu6,
                                                 kernel_initializer=k_init,
                                                 bias_initializer=b_init,
@@ -188,19 +188,26 @@ class BG(object):
         self.now = 0.0
         self.cnvtime = 0.0
 
-        #self.saver = tf.train.Saver()
         self.sess = tf.Session()
         with tf.device("/cpu:0"):
             Brain('global', self.sess)
             self.worker = Agent(1, self.sess)
+            self.saver = tf.train.Saver()
             self.sess.run(tf.global_variables_initializer())
         
         
     def doaction(self, a):
         return dict(to_pfc=None, to_fef=None, to_sc=a)
+
+    def save_model(self, model_name):
+        path = './log/param/param'+time.strftime("%Y_%m_%d_%I_%M", self.cnvtime)
+        if not os.path.exists(path):
+            os.makedirs(path)
+        self.saver.save(self.sess, path + '/' + model_name)
+        
     
     def __call__(self, inputs):
-        starttime = time.time()
+        #starttime = time.time()
         if 'from_environment' not in inputs:
             raise Exception('BG did not recieve from Environment')
         if 'from_pfc' not in inputs:
@@ -212,7 +219,7 @@ class BG(object):
         phase = inputs['from_pfc']
         fef_data = inputs['from_fef']
         action_space = len(fef_data)
-
+        print('reward:', reward)
         print('step:', self.steps)
         ##print('reward:', reward)
        
@@ -230,7 +237,6 @@ class BG(object):
             self.cnvtime = time.strptime(self.now)
             
         s = np.append(fef_data[:, 0], phase)
-
         '''
         if self.steps == 1:
             if self.steps > STEP_THRE:
@@ -244,7 +250,7 @@ class BG(object):
                 self.a = self.worker.choose_action(s)
 
 
-        if self.steps % self.worker.params_update_iter == 0 :
+        if self.steps % (self.worker.params_update_iter/2) == 0 :
             if self.steps > STEP_THRE:
                 esp = ESP_END
             else:
@@ -265,7 +271,7 @@ class BG(object):
         if random.random() < esp:
             self.a = np.random.rand(self.n_actions)
         else:
-            self.a = self.worker.choose_action(s)        
+            self.a = self.worker.choose_action(s)
         #'''
 
         #print('a:', self.a)
@@ -274,7 +280,7 @@ class BG(object):
         self.buffer_s.append(s)
         self.buffer_a.append(self.a)
         self.buffer_r.append((reward + 8) / 8)
-
+        '''
         if self.steps % self.worker.params_update_iter == 0 or done:
             if done:
                 v_s_ = 0
@@ -288,7 +294,7 @@ class BG(object):
             self.buffer_s, self.buffer_a, self.buffer_r = [], [], []
             self.worker.agent_brain.update_local_params()
 
-        
+        '''
         f = open('./log/reward/reward' + time.strftime("%Y_%m_%d_%I_%M", self.cnvtime), 'a')
         f.write(str(self.steps)+", "+str(reward)+"\n")
         f.close()
@@ -296,8 +302,8 @@ class BG(object):
 
         self.steps += 1
         do = self.doaction(self.a)
-        endtime = time.time()
-        print('BG time:', endtime-starttime)
+        #endtime = time.time()
+        #print('BG time:', endtime-starttime)
         return do
         
 

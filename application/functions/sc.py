@@ -40,6 +40,16 @@ class SC(object):
 
         # Calculate average eye ex, ey with has likelihoods over
         # the thresholds from BG.
+        diff = fef_data[0:, 0] - bg_data
+        #print('fefdata', fef_data[0:,0])
+        #print('bgdata', bg_data)
+        #print('diff', diff)
+        max_idx = np.argmax(diff)
+        #print('max_idx', max_idx)
+        action = fef_data[max_idx, 1:]
+        #print('action', action)
+
+        '''
         for i,data in enumerate(fef_data):
             likelihood = data[0]
             ex = data[1]
@@ -49,12 +59,11 @@ class SC(object):
             if likelihood > likelihood_threshold:
                 sum_ex += ex
                 sum_ey += ey
-                count += 1
-                
+                count += 1       
         # Action values should be within range [-1.0~1.0]
         if count != 0:
             action = [sum_ex / count, sum_ey / count]
         else:
             action = [0.0, 0.0]
-        
+        '''
         return np.array(action, dtype=np.float32)

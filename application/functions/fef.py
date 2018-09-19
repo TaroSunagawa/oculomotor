@@ -35,7 +35,7 @@ class ActionAccumulator(object):
         self.ey = ey
         # Decay rate of likehilood
         self.decay_rate = decay_rate
-
+        
         # Connected accmulators
         self.target_accmulators = []
         
@@ -73,13 +73,21 @@ class SaliencyAccumulator(ActionAccumulator):
         # Pixel x,y pos at left top corner of the region.
         self.pixel_x = pixel_x
         self.pixel_y = pixel_y
+        # Saliency Coefficient
+        self.coef_map = [SALIENCY_COEFF] * 64
+        self.coef = SALIENCY_COEFF
         
-    def process(self, saliency_map):
+    def process(self, saliency_map, change):
         # Crop region image
         region_saliency = saliency_map[self.pixel_y:self.pixel_y+GRID_WIDTH,
                                        self.pixel_x:self.pixel_x+GRID_WIDTH]
         average_saliency = np.mean(region_saliency)
-        self.accumulate(average_saliency * SALIENCY_COEFF)
+        if change == None:
+            self.coef = SALIENCY_COEFF
+        if change:
+            self.coef = 0.5 * self.coef
+            print("change:"+str(change))
+        self.accumulate(average_saliency * self.coef)
         self.expose()
         
 
@@ -110,7 +118,9 @@ class FEF(object):
         
         self.saliency_accumulators = []
         self.cursor_accumulators = []
-        
+
+        self.phasebuff = []
+
         cursor_template = load_image("data/debug_cursor_template_w.png")
         
         for ix in range(GRID_DIVISION):
@@ -146,25 +156,39 @@ class FEF(object):
             raise Exception('FEF did not recieve from BG')
 
         phase = inputs['from_pfc']
-
         saliency_map, optical_flow = inputs['from_lip']
         retina_image = inputs['from_vc']
+        
+        change = False
+        self.phasebuff.append(phase)
+        if self.phasebuff[-1] != phase:
+            change = None
+        if len(self.phasebuff) > 399:
+            self.phasebuff.pop(0)
+            if len(list(set(self.phasebuff))) == 1 :
+                change = True
+                print("\n\ncoefficient was changed\n\n")
+                self.phasebuff.clear()
+            
         output = []
         # TODO: 領野をまたいだ共通phaseをどう定義するか？
         if phase == 0:
             for cursor_accumulator in self.cursor_accumulators:
                 cursor_accumulator.process(retina_image)
                 # add
-                cursor_accumulator.post_process()
+                cursor_accumulator.post_process()#rate=self.rate)
                 output.append(cursor_accumulator.output)
-            print('FEF phase:True')
+            
+            #print('FEF phase:True')
+            print('FEF phase:Cursor')
         else:
             for saliency_accumulator in self.saliency_accumulators:
-                saliency_accumulator.process(saliency_map)
+                saliency_accumulator.process(saliency_map, change)
                 # add
-                saliency_accumulator.post_process()
+                saliency_accumulator.post_process()#rate=self.rate)
                 output.append(saliency_accumulator.output)
-            print('FEF phase:False')
+            #print('FEF phase:False')
+            print('FEF phase:Task')
         '''
         for saliency_accumulator in self.saliency_accumulators:
             saliency_accumulator.post_process()
@@ -173,13 +197,15 @@ class FEF(object):
         
         output = self._collect_output()
         '''
-        
+
         output = np.array(output, dtype=np.float32)
+        #print(output)
+
         return dict(to_pfc=None,
                     to_bg=output,
                     to_sc=output,
                     to_cb=None)
-
+    '''
     def _collect_output(self):
         output = []
         for saliency_accumulator in self.saliency_accumulators:
@@ -187,3 +213,4 @@ class FEF(object):
         for cursor_accumulator in self.cursor_accumulators:
             output.append(cursor_accumulator.output)
         return np.array(output, dtype=np.float32)
+    '''

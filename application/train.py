@@ -83,32 +83,34 @@ def train(content, step_size, logger):
 
     # Add initial reward log
     logger.log("episode_reward", episode_reward, episode_count)
-    step_size = 10800*500
-    for i in range(step_size):
-        image, angle = obs['screen'], obs['angle']
-        # Choose action by the agent's decision
-        action = agent(image, angle, reward, done)
-        # Foward environment one step
-        obs, reward, done, _ = env.step(action)
+    #step_size = 10800
+    while True:
+        for i in range(step_size):
+            image, angle = obs['screen'], obs['angle']
+            # Choose action by the agent's decision
+            action = agent(image, angle, reward, done)
+            # Foward environment one step
+            obs, reward, done, _ = env.step(action)
 
-        episode_reward += reward
-        
-        if done:
-            print("episode count={}".format(episode_count))
-            obs = env.reset()
-            print("episode reward={}".format(episode_reward))
+            episode_reward += reward
+            
+            if done:
+                print("episode count={}".format(episode_count))
+                obs = env.reset()
+                print("episode reward={}".format(episode_reward))
 
-            # Store log for tensorboard graph
-            episode_count += 1
-            logger.log("episode_reward", episode_reward, episode_count)
-            
-            episode_reward = 0
-            
-            # Plase add model save code as you like.
-            #
-            if i % 10 == 0:
-                bg.save_model(str(i)+"model.pkl")
-            
+                # Store log for tensorboard graph
+                episode_count += 1
+                logger.log("episode_reward", episode_reward, episode_count)
+                episode_reward = 0
+                # Plase add model save code as you like.
+                bg.save_model(str(episode_count)+"model.pkl")
+
+        episode_count += 1
+        logger.log("episode_reward", episode_reward, episode_count)
+        episode_reward = 0
+        bg.save_model(str(episode_count)+"model.pkl")
+
     print("training finished")
     logger.close()
     endtime = time.time()
@@ -145,7 +147,7 @@ def main():
     print("start training content: {} step_size={}".format(content_type, step_size))
 
     # Log is stored 'log' directory
-    log_path = "log/{}".format(log_file)
+    log_path = "log/experiment/{}".format(log_file)
     logger = Logger(log_path)
 
     # Start training
