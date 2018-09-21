@@ -11,6 +11,7 @@ class SC(object):
         self.timing = brica.Timing(6, 1, 0)
 
         self.last_fef_data = None
+        self.last_sc_data = None
         self.baseline = None
 
     def __call__(self, inputs):
@@ -64,13 +65,8 @@ class SC(object):
         # Calculate average eye ex, ey with has likelihoods over
         # the thresholds from BG.
         diff = fef_data[0:, 0] - bg_data
-        #print('fefdata', fef_data[0:,0])
-        #print('bgdata', bg_data)
-        #print('diff', diff)
         max_idx = np.argmax(diff)
-        #print('max_idx', max_idx)
         action = fef_data[max_idx, 1:]
-        #print('action', action)
         '''
         self.baseline = mixture_gauss(bg_data)
         diff = fef_data[0:,0]+self.baseline

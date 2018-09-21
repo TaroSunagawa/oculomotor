@@ -107,6 +107,24 @@ class Inspector(object):
         data = np.stack([data for _ in range(3)], axis=2)
         self.show_image(data, 128 * 2 + 8, 8, "saliency")
 
+    '''
+    viewer
+    '''
+    def show_action_map(self, action_map):
+        action_map_std = (action_map-np.min(action_map))/(np.max(action_map)-np.min(action_map))
+        data = action_map_std
+        self.show_grid(data,0, 8, 16, 8, 200, "action")
+
+    def show_thres_map(self, thresholds):
+        denom = np.max(thresholds[:64])-np.min(thresholds[:64])
+        if denom<=0:
+            denom = 1e-10
+        sal_std = (thresholds[:64]-np.min(thresholds[:64]))/denom
+        #cur_std = (thresholds[64:]-np.min(thresholds[64:]))/(np.max(thresholds[64:])-np.min(thresholds[64:]))
+        self.show_grid(sal_std,0, 8, 16, 128 + 8, 200, "saliency baseline")
+        #self.show_grid(cur_std,0, 8, 16, 128 * 3 + 8, 200, "cursor thres")
+
+
     def show_optical_flow(self, optical_flow):
         # Show optical flow with HSV color image
         image = self.get_optical_flow_hsv(optical_flow)
@@ -174,18 +192,18 @@ class Inspector(object):
         grid_width = 128 // grid_division
 
         likelihoods0 = []
-        likelihoods1 = []
+        #likelihoods1 = []
 
         data_len = len(fef_data) // 2
 
         for i in range(data_len):
             likelihoods0.append(fef_data[i][0])
-            likelihoods1.append(fef_data[i + data_len][0])
+            #likelihoods1.append(fef_data[i + data_len][0])
 
-        self.show_grid(likelihoods0, 0, grid_division, grid_width, 8, 300,
+        self.show_grid(likelihoods0, 0, grid_division, grid_width, 8, 350,
                        "saliency acc")
-        self.show_grid(likelihoods1, 0, grid_division, grid_width, 8 + 128,
-                       300, "cursor acc")
+        #self.show_grid(likelihoods1, 0, grid_division, grid_width, 8 + 128,
+                       #300, "cursor acc")
 
     def show_grid(self, data, offset, grid_division, grid_width, left, top,
                   label):
@@ -213,9 +231,9 @@ class Inspector(object):
         action = self.agent(self.last_image, self.last_angle, self.last_phase, self.last_reward,
                             self.last_done)
         obs, reward, done, info = self.env.step(action)
-
-        self.episode_reward += reward
         '''
+        self.episode_reward += reward
+        
         if done:
             obs = self.env.reset()
             self.episode_reward = 0
@@ -242,8 +260,18 @@ class Inspector(object):
             self.show_optical_flow(self.lip.last_optical_flow)
 
         if self.sc.last_fef_data is not None:
-            self.show_fef_data_bars(self.sc.last_fef_data)
+            #self.show_fef_data_bars(self.sc.last_fef_data)
             self.show_fef_data_grid(self.sc.last_fef_data)
+        
+        if self.sc.last_sc_data is not None:
+            self.show_action_map(self.sc.last_sc_data)
+
+        if self.sc.baseline is not None:
+            #self.show_fef_data_bars(self.sc.last_fef_data)
+            self.show_thres_map(self.sc.baseline)
+        # if self.hp.map_image is not None:
+        #     self.show_map_image(self.hp.map_image)
+
 
         if self.hp.map_image is not None:
             self.show_map_image(self.hp.map_image)

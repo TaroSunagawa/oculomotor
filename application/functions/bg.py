@@ -6,10 +6,6 @@ import random
 import time
 import os
 
-STEP_THRE = 10000
-ESP_START = 0.7
-ESP_END = 0.0
-
 #--Agent---------------------------------------------------------------------------
 class Agent(object):
     def __init__(self, number, sess, gamma=0.9, max_epochs=100, max_ep_steps=100, params_update_iter=10):
@@ -46,7 +42,6 @@ class Agent(object):
 class Brain(object):
     def __init__(self, scope, sess, action_scale=1.0, actor_lr=0.001, critic_lr=0.001):
         self.sess = sess
-        #self.env = env
         self.low_action_bound = 0.0 
         self.high_action_bound = 1.0 
         self.n_states = 64+1 #128/2 #* 3 
@@ -178,22 +173,22 @@ class Brain(object):
 
 #--BG--------------------------------------------------------------------------------------------------
 class BG(object):
-    def __init__(self):
+    def __init__(self, logger=None):
         self.timing = brica.Timing(5, 1, 0)
         self.buffer_s, self.buffer_a, self.buffer_r = [], [], []
-        self.total_r = []
-        self.avg_epoch_r_hist = []
         self.steps = 1
         self.a = []
-        self.now = 0.0
-        self.cnvtime = 0.0
+        self.reward = 0
+        self.now = time.ctime()
+        self.cnvtime = time.strptime(self.now)
+
+        self.logger = logger
 
         self.sess = tf.Session()
-        with tf.device("/cpu:0"):
-            Brain('global', self.sess)
-            self.worker = Agent(1, self.sess)
-            self.saver = tf.train.Saver()
-            self.sess.run(tf.global_variables_initializer())
+        Brain('global', self.sess)
+        self.worker = Agent(1, self.sess)
+        self.saver = tf.train.Saver(max_to_keep=None)
+        self.sess.run(tf.global_variables_initializer())
         
         
     def doaction(self, a):
@@ -205,6 +200,8 @@ class BG(object):
             os.makedirs(path)
         self.saver.save(self.sess, path + '/' + model_name)
         
+    def log_reward(self, logger):
+        logger.log("step_reward", self.reward, self.steps)  
     
     def __call__(self, inputs):
         #starttime = time.time()
@@ -218,69 +215,20 @@ class BG(object):
         reward, done = inputs['from_environment']
         phase = inputs['from_pfc']
         fef_data = inputs['from_fef']
-        action_space = len(fef_data)
+        action_space = 10  #len(fef_data)
         print('reward:', reward)
         print('step:', self.steps)
-        ##print('reward:', reward)
-       
-        #print(fef_data)
-        #print(len(fef_data))
-        if self.steps == 1:
-            self.phase = phase
-            self.fef_data = fef_data[:, 0]
-            self.state = np.append(self.fef_data, self.phase)
-            self.n_states = len(self.state) #* 3
-            self.n_actions = action_space
-            self.a_low_bound = 0.0
-            self.a_high_bound = 1.0
-            self.now = time.ctime()
-            self.cnvtime = time.strptime(self.now)
-            
+        
+        self.reward = reward
         s = np.append(fef_data[:, 0], phase)
-        '''
-        if self.steps == 1:
-            if self.steps > STEP_THRE:
-                esp = ESP_END
-            else:
-                esp = ESP_START + self.steps * (ESP_END - ESP_START) / STEP_THRE
-            
-            if random.random() < esp:
-                self.a = np.random.rand(self.n_actions)
-            else:
-                self.a = self.worker.choose_action(s)
 
-
-        if self.steps % (self.worker.params_update_iter/2) == 0 :
-            if self.steps > STEP_THRE:
-                esp = ESP_END
-            else:
-                esp = ESP_START + self.steps * (ESP_END - ESP_START) / STEP_THRE
-            
-            if random.random() < esp:
-                self.a = np.random.rand(self.n_actions)
-            else:
-                self.a = self.worker.choose_action(s)
-        '''
-
-        #'''
-        if self.steps > STEP_THRE:
-            esp = ESP_END
-        else:
-            esp = ESP_START + self.steps * (ESP_END - ESP_START) / STEP_THRE
-            
-        if random.random() < esp:
-            self.a = np.random.rand(self.n_actions)
-        else:
-            self.a = self.worker.choose_action(s)
-        #'''
-
+        self.a = self.worker.choose_action(s)
         #print('a:', self.a)
 
-        self.total_r.append(reward)
         self.buffer_s.append(s)
         self.buffer_a.append(self.a)
         self.buffer_r.append((reward + 8) / 8)
-        '''
+        
         if self.steps % self.worker.params_update_iter == 0 or done:
             if done:
                 v_s_ = 0
@@ -288,18 +236,14 @@ class BG(object):
                 v_s_ = self.worker.predict_value(s)
 
             discounted_r = self.worker._discounted_reward(v_s_, self.buffer_r)
-            #print('discounted_r:', discounted_r)
             self.worker.learn(self.buffer_s, self.buffer_a, discounted_r)
-            
             self.buffer_s, self.buffer_a, self.buffer_r = [], [], []
             self.worker.agent_brain.update_local_params()
+        
+        if self.logger != None:
+            self.log_reward(self.logger)
 
-        '''
-        f = open('./log/reward/reward' + time.strftime("%Y_%m_%d_%I_%M", self.cnvtime), 'a')
-        f.write(str(self.steps)+", "+str(reward)+"\n")
-        f.close()
-        #self.saver.save(self.sess, './log/param/param' + time.strftime("%Y_%m_%d_%I_%M", self.cnvtime))
-
+       
         self.steps += 1
         do = self.doaction(self.a)
         #endtime = time.time()

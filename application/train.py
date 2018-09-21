@@ -47,7 +47,7 @@ def train(content, step_size, logger):
     vc = VC()
     pfc = PFC()
     fef = FEF()
-    bg = BG()
+    bg = BG(logger)
     sc = SC()
     hp = HP()
     cb = CB()
