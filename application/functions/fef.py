@@ -176,27 +176,26 @@ class FEF(object):
             for cursor_accumulator in self.cursor_accumulators:
                 cursor_accumulator.process(retina_image)
                 # add
-                cursor_accumulator.post_process()#rate=self.rate)
-                output.append(cursor_accumulator.output)
-            
+                #cursor_accumulator.post_process()#rate=self.rate)
+                #output.append(cursor_accumulator.output)   
             #print('FEF phase:True')
             print('FEF phase:Cursor')
         else:
             for saliency_accumulator in self.saliency_accumulators:
                 saliency_accumulator.process(saliency_map, change)
                 # add
-                saliency_accumulator.post_process()#rate=self.rate)
-                output.append(saliency_accumulator.output)
+                #saliency_accumulator.post_process()#rate=self.rate)
+                #output.append(saliency_accumulator.output)
             #print('FEF phase:False')
             print('FEF phase:Task')
-        '''
+        #'''
         for saliency_accumulator in self.saliency_accumulators:
             saliency_accumulator.post_process()
-        for cursor_accumulator in self.cursor_accumulators:
-            cursor_accumulator.post_process()
+        #for cursor_accumulator in self.cursor_accumulators:
+        #    cursor_accumulator.post_process()
         
         output = self._collect_output()
-        '''
+        #'''
 
         output = np.array(output, dtype=np.float32)
         #print(output)
@@ -205,12 +204,12 @@ class FEF(object):
                     to_bg=output,
                     to_sc=output,
                     to_cb=None)
-    '''
+    #'''
     def _collect_output(self):
         output = []
         for saliency_accumulator in self.saliency_accumulators:
             output.append(saliency_accumulator.output)
-        for cursor_accumulator in self.cursor_accumulators:
-            output.append(cursor_accumulator.output)
+        #for cursor_accumulator in self.cursor_accumulators:
+        #    output.append(cursor_accumulator.output)
         return np.array(output, dtype=np.float32)
-    '''
+    #'''

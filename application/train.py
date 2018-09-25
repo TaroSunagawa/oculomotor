@@ -133,7 +133,7 @@ def main():
                         type=int,
                         default=1)
     parser.add_argument("--step_size", help="Training step size", type=int, default=1000000)
-    parser.add_argument("--log_file", help="Log file name", type=str, default="experiment" + time.strftime("%Y_%m_%d_%I_%M", cnvtime))
+    parser.add_argument("--log_file", help="Log file name", type=str, default="experiment1") #+ time.strftime("%Y_%m_%d_%I_%M", cnvtime))
     
     args = parser.parse_args()
     
