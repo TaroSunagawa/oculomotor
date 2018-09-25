@@ -8,15 +8,12 @@ import os
 
 #--Agent---------------------------------------------------------------------------
 class Agent(object):
-    def __init__(self, number, sess, gamma=0.9, max_epochs=100, max_ep_steps=100, params_update_iter=10):
+    def __init__(self, number, sess, gamma=0.9, params_update_iter=10):
         self.number = number
         self.name = 'agent_' + str(number)
-        #self.env = env
         self.agent_brain = Brain(self.name, sess)  # create ACNet for each worker
         self.sess = sess
         self.gamma = gamma
-        self.max_epochs = max_epochs
-        self.max_ep_steps = max_ep_steps
         self.params_update_iter = params_update_iter
 
     def _discounted_reward(self, v_, r):
@@ -120,13 +117,13 @@ class Brain(object):
                                                kernel_initializer=k_init,
                                                bias_initializer=b_init,
                                                name='actor_hidden2')
-                mu = tf.layers.dense(inputs=actor_hidden1,
+                mu = tf.layers.dense(inputs=actor_hidden2,
                                      units=self.n_actions,
                                      activation=tf.nn.tanh,
                                      kernel_initializer=k_init,
                                      bias_initializer=b_init,
                                      name='mu')
-                sigma = tf.layers.dense(inputs=actor_hidden1,
+                sigma = tf.layers.dense(inputs=actor_hidden2,
                                         units=self.n_actions,
                                         activation=tf.nn.softplus,
                                         kernel_initializer=k_init,
@@ -173,16 +170,15 @@ class Brain(object):
 
 #--BG--------------------------------------------------------------------------------------------------
 class BG(object):
-    def __init__(self, logger=None):
+    def __init__(self, logger=None, log_path=None):
         self.timing = brica.Timing(5, 1, 0)
+        self.log_path = log_path
         self.buffer_s, self.buffer_a, self.buffer_r = [], [], []
         self.steps = 1
         self.a = []
         self.reward = 0
-        self.now = time.ctime()
-        self.cnvtime = time.strptime(self.now)
-
-        self.logger = logger
+        #self.now = time.ctime()
+        #self.cnvtime = time.strptime(self.now)
 
         self.sess = tf.Session()
         Brain('global', self.sess)
@@ -191,17 +187,12 @@ class BG(object):
         self.sess.run(tf.global_variables_initializer())
         
         
-    def doaction(self, a):
-        return dict(to_pfc=None, to_fef=None, to_sc=a)
-
     def save_model(self, model_name):
-        path = './log/param/param'+time.strftime("%Y_%m_%d_%I_%M", self.cnvtime)
+        #path = './log/param/param'+time.strftime("%Y_%m_%d_%I_%M", self.cnvtime)
+        path = self.log_path + "/param"
         if not os.path.exists(path):
             os.makedirs(path)
         self.saver.save(self.sess, path + '/' + model_name)
-        
-    def log_reward(self, logger):
-        logger.log("step_reward", self.reward, self.steps)  
     
     def __call__(self, inputs):
         #starttime = time.time()
@@ -239,13 +230,9 @@ class BG(object):
             self.worker.learn(self.buffer_s, self.buffer_a, discounted_r)
             self.buffer_s, self.buffer_a, self.buffer_r = [], [], []
             self.worker.agent_brain.update_local_params()
-        
-        if self.logger != None:
-            self.log_reward(self.logger)
-
-       
+      
         self.steps += 1
-        do = self.doaction(self.a)
+        return dict(to_pfc=None, to_fef=None, to_sc=self.a)
         #endtime = time.time()
         #print('BG time:', endtime-starttime)
         return do

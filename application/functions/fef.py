@@ -74,7 +74,7 @@ class SaliencyAccumulator(ActionAccumulator):
         self.pixel_x = pixel_x
         self.pixel_y = pixel_y
         # Saliency Coefficient
-        self.coef_map = [SALIENCY_COEFF] * 64
+        self.coef_map = [SALIENCY_COEFF] * 16 #64
         self.coef = SALIENCY_COEFF
         
     def process(self, saliency_map, change):

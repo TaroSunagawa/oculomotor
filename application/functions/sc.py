@@ -37,6 +37,7 @@ class SC(object):
         sum_ey = 0.0
 
         def mixture_gauss(params):
+            params = params * 8
             mu1 = params[[0,1]]
             mu2 = params[[4,5]]
             det1 = (params[2]+0.1)*(params[3]+0.1)
@@ -54,7 +55,7 @@ class SC(object):
                 return lam1*exp1/(2*np.pi*np.sqrt(det1)) + lam2*exp2/(2*np.pi*np.sqrt(det2))
 
             x = y = np.arange(0,8)
-            X, Y = np.meshgrid(x, y)
+            X, Y = np.meshgrid(x, y)#y axis same, x axis same
             Z = np.vectorize(f)(X,Y)
             return Z.reshape(-1)
         '''
@@ -68,11 +69,14 @@ class SC(object):
         max_idx = np.argmax(diff)
         action = fef_data[max_idx, 1:]
         '''
+        #print(bg_data)
         self.baseline = mixture_gauss(bg_data)
         diff = fef_data[0:,0]+self.baseline
         self.last_sc_data = diff
+        #print(diff)
         max_idx = np.argmax(diff)
         action = fef_data[max_idx, 1:]
+        #print('action', action)
         return action
 
         '''

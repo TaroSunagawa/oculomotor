@@ -188,13 +188,13 @@ class Inspector(object):
                               bottom + 8)
 
     def show_fef_data_grid(self, fef_data):
-        grid_division = int(math.sqrt(len(fef_data) // 2))
+        grid_division = int(math.sqrt(len(fef_data)))
         grid_width = 128 // grid_division
 
         likelihoods0 = []
         #likelihoods1 = []
 
-        data_len = len(fef_data) // 2
+        data_len = len(fef_data) 
 
         for i in range(data_len):
             likelihoods0.append(fef_data[i][0])

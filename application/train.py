@@ -40,14 +40,14 @@ def get_content(content_type):
     return content
 
 
-def train(content, step_size, logger):
+def train(content, step_size, logger, log_path):
     starttime = time.time()
     retina = Retina()
     lip = LIP()
     vc = VC()
     pfc = PFC()
     fef = FEF()
-    bg = BG(logger)
+    bg = BG(log_path=log_path)
     sc = SC()
     hp = HP()
     cb = CB()
@@ -104,12 +104,12 @@ def train(content, step_size, logger):
                 logger.log("episode_reward", episode_reward, episode_count)
                 episode_reward = 0
                 # Plase add model save code as you like.
-                bg.save_model(str(episode_count)+"model.pkl")
+                bg.save_model(str(episode_count)+"model")
 
         episode_count += 1
         logger.log("episode_reward", episode_reward, episode_count)
         episode_reward = 0
-        bg.save_model(str(episode_count)+"model.pkl")
+        bg.save_model(str(episode_count)+"model")
 
     print("training finished")
     logger.close()
@@ -151,7 +151,7 @@ def main():
     logger = Logger(log_path)
 
     # Start training
-    train(content, step_size, logger)
+    train(content, step_size, logger, log_path)
 
 
 if __name__ == '__main__':
