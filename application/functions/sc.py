@@ -71,7 +71,7 @@ class SC(object):
         '''
         #print(bg_data)
         self.baseline = mixture_gauss(bg_data)
-        diff = fef_data[0:,0]+self.baseline
+        diff = fef_data[0:,0]+(self.baseline/8.0)
         self.last_sc_data = diff
         #print(diff)
         max_idx = np.argmax(diff)

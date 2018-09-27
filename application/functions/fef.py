@@ -77,16 +77,18 @@ class SaliencyAccumulator(ActionAccumulator):
         self.coef_map = [SALIENCY_COEFF] * 16 #64
         self.coef = SALIENCY_COEFF
         
-    def process(self, saliency_map, change):
+    def process(self, saliency_map, change=None):
         # Crop region image
         region_saliency = saliency_map[self.pixel_y:self.pixel_y+GRID_WIDTH,
                                        self.pixel_x:self.pixel_x+GRID_WIDTH]
         average_saliency = np.mean(region_saliency)
-        if change == None:
-            self.coef = SALIENCY_COEFF
+        #if change == None:
+        self.coef = SALIENCY_COEFF
+        '''
         if change:
             self.coef = self.coef#0.5 * self.coef
             print("change:"+str(change))
+        '''
         self.accumulate(average_saliency * self.coef)
         self.expose()
         
@@ -158,7 +160,7 @@ class FEF(object):
         phase = inputs['from_pfc']
         saliency_map, optical_flow = inputs['from_lip']
         retina_image = inputs['from_vc']
-        
+        '''
         change = False
         self.phasebuff.append(phase)
         if self.phasebuff[-1] != phase:
@@ -169,7 +171,7 @@ class FEF(object):
                 change = True
                 print("\n\ncoefficient was changed\n\n")
                 self.phasebuff.clear()
-            
+        ''' 
         output = []
         # TODO: 領野をまたいだ共通phaseをどう定義するか？
         if phase == 0:

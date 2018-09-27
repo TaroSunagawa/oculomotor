@@ -104,7 +104,15 @@ class Brain(object):
     def _build_net(self, scope):
         with tf.variable_scope(scope):
             k_init, b_init = tf.random_normal_initializer(0.0, 0.1), tf.constant_initializer(0.1)
-
+            '''
+            # add LSTM
+            lstm_cell = tf.nn.rnn.BasicLSTMCell(1, state_is_tuple=True)
+            c_init = np.zeros((1, lstm_cell.state_size.c), np.float32)
+            h_init = np.zeros((1, lstm_cell.state_size.h), np.float32)
+            self.state_init = [c_init, h_init]
+            c_in = tf.placeholder(tf.float32, [1, lstm_cell.state_size.c])
+            h_in = tf.placeholder(tf.float32, [1, lstm_cell.state_size.h])
+            '''
             #actor net 活性化関数relu6 tanh softplus
             with tf.variable_scope('actor'):
                 actor_hidden1 = tf.layers.dense(inputs=self.s, units=32,
@@ -117,6 +125,7 @@ class Brain(object):
                                                kernel_initializer=k_init,
                                                bias_initializer=b_init,
                                                name='actor_hidden2')
+
                 mu = tf.layers.dense(inputs=actor_hidden2,
                                      units=self.n_actions,
                                      activation=tf.nn.tanh,
@@ -170,9 +179,10 @@ class Brain(object):
 
 #--BG--------------------------------------------------------------------------------------------------
 class BG(object):
-    def __init__(self, logger=None, log_path=None):
+    def __init__(self, logger=None, log_path=None, train=True):
         self.timing = brica.Timing(5, 1, 0)
         self.log_path = log_path
+        self.train = train
         self.buffer_s, self.buffer_a, self.buffer_r = [], [], []
         self.steps = 1
         self.a = []
@@ -186,13 +196,17 @@ class BG(object):
         self.saver = tf.train.Saver(max_to_keep=None)
         self.sess.run(tf.global_variables_initializer())
         
-        
     def save_model(self, model_name):
         #path = './log/param/param'+time.strftime("%Y_%m_%d_%I_%M", self.cnvtime)
         path = self.log_path + "/param"
         if not os.path.exists(path):
             os.makedirs(path)
         self.saver.save(self.sess, path + '/' + model_name)
+
+    def load_model(self, model_name):
+        #path = './log/param/param'+'2018_09_21_01_26/'
+        path = './log/load/'
+        self.saver.restore(self.sess, path+model_name)
     
     def __call__(self, inputs):
         #starttime = time.time()
@@ -220,6 +234,7 @@ class BG(object):
         self.buffer_a.append(self.a)
         self.buffer_r.append((reward + 8) / 8)
         
+        #if train == True and
         if self.steps % self.worker.params_update_iter == 0 or done:
             if done:
                 v_s_ = 0
@@ -235,7 +250,7 @@ class BG(object):
         return dict(to_pfc=None, to_fef=None, to_sc=self.a)
         #endtime = time.time()
         #print('BG time:', endtime-starttime)
-        return do
+        #return do
         
 
 

@@ -147,7 +147,7 @@ class LIP(object):
         saliency = self._get_saliency_magnitude(image_gray)
       
         saliency = cv2.GaussianBlur(saliency, GAUSSIAN_KERNEL_SIZE, sigmaX=8, sigmaY=0)
-        saliency = (saliency ** (1/2) *2)
+        saliency = (saliency ** (1/2) )
         saliency = saliency / np.max(saliency) # Normalize
     
         # Resize to original size
