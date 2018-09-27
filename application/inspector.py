@@ -208,6 +208,7 @@ class Inspector(object):
     def show_grid(self, data, offset, grid_division, grid_width, left, top,
                   label):
         index = 0
+        #print(data)
         for ix in range(grid_division):
             x = grid_width * ix
             for iy in range(grid_division):
@@ -269,12 +270,9 @@ class Inspector(object):
         if self.sc.baseline is not None:
             #self.show_fef_data_bars(self.sc.last_fef_data)
             self.show_thres_map(self.sc.baseline)
-        # if self.hp.map_image is not None:
-        #     self.show_map_image(self.hp.map_image)
-
-
         if self.hp.map_image is not None:
             self.show_map_image(self.hp.map_image)
+
 
         # add self.last_phase
         #self.last_phase = phase

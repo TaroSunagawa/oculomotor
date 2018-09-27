@@ -15,7 +15,7 @@ GRID_DIVISION = 8
 GRID_WIDTH = 128 // GRID_DIVISION
 
 CURSOR_MATCH_COEFF = 0.3
-SALIENCY_COEFF = 0.3
+SALIENCY_COEFF = 0.1
 
 
 class ActionAccumulator(object):
@@ -74,22 +74,23 @@ class SaliencyAccumulator(ActionAccumulator):
         self.pixel_x = pixel_x
         self.pixel_y = pixel_y
         # Saliency Coefficient
-        self.coef_map = [SALIENCY_COEFF] * 16 #64
-        self.coef = SALIENCY_COEFF
+        #self.coef_map = [SALIENCY_COEFF] * 16 #64
+        #self.coef = SALIENCY_COEFF
         
-    def process(self, saliency_map, change=None):
+    def process(self, saliency_map):#, change=None):
         # Crop region image
         region_saliency = saliency_map[self.pixel_y:self.pixel_y+GRID_WIDTH,
                                        self.pixel_x:self.pixel_x+GRID_WIDTH]
         average_saliency = np.mean(region_saliency)
-        #if change == None:
-        self.coef = SALIENCY_COEFF
         '''
+        if change == None:
+        #self.coef = SALIENCY_COEFF
+        
         if change:
             self.coef = self.coef#0.5 * self.coef
             print("change:"+str(change))
         '''
-        self.accumulate(average_saliency * self.coef)
+        self.accumulate(average_saliency * SALIENCY_COEFF)#* self.coef)
         self.expose()
         
 
@@ -172,7 +173,7 @@ class FEF(object):
                 print("\n\ncoefficient was changed\n\n")
                 self.phasebuff.clear()
         ''' 
-        output = []
+        #output = []
         # TODO: 領野をまたいだ共通phaseをどう定義するか？
         if phase == 0:
             for cursor_accumulator in self.cursor_accumulators:
@@ -184,7 +185,7 @@ class FEF(object):
             print('FEF phase:Cursor')
         else:
             for saliency_accumulator in self.saliency_accumulators:
-                saliency_accumulator.process(saliency_map, change)
+                saliency_accumulator.process(saliency_map)
                 # add
                 #saliency_accumulator.post_process()#rate=self.rate)
                 #output.append(saliency_accumulator.output)
@@ -199,7 +200,7 @@ class FEF(object):
         output = self._collect_output()
         #'''
 
-        output = np.array(output, dtype=np.float32)
+        #output = np.array(output, dtype=np.float32)
         #print(output)
 
         return dict(to_pfc=None,

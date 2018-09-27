@@ -38,6 +38,7 @@ class SC(object):
 
         def mixture_gauss(params):
             params = params * 8
+            print(params)
             mu1 = params[[0,1]]
             mu2 = params[[4,5]]
             det1 = (params[2]+0.1)*(params[3]+0.1)
@@ -71,7 +72,9 @@ class SC(object):
         '''
         #print(bg_data)
         self.baseline = mixture_gauss(bg_data)
-        diff = fef_data[0:,0]+(self.baseline/8.0)
+        print(self.baseline)
+        print(fef_data)
+        diff = fef_data[:,0]+(self.baseline/8.0)
         self.last_sc_data = diff
         #print(diff)
         max_idx = np.argmax(diff)

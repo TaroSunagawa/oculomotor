@@ -120,6 +120,6 @@ class PFC(object):
             fef_message = 0
         else:
             fef_message = 1
-
+        fef_message = 1
         return dict(to_fef=fef_message,
                     to_bg=fef_message)
